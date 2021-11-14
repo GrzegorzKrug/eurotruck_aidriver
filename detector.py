@@ -38,7 +38,6 @@ def image_to_features(arr, include_pos=False, pos_weight=0.5):
     return out
 
 
-
 def image_revert_from_features(arr, keys):
     # translation_key = tuple(map(tuple, keys))
     # temp = np.zeros_like(arr)

@@ -37,23 +37,41 @@ class Window:
         self.name = name
         self.math_name = match_name
 
-        window = self.find_window(self.name)
-        self.box = window.box
-        self.props = {
-                'left': window.left, "top": window.top,
-                'width': window.width, 'height': window.height,
-        }
-        # self.props = {
-        #         'left': -500, "top": 0,
-        #         'width': 500, 'height': 250
-        # }
-        self.box_points = [window.left, window.top, window.left + window.width,
-                           window.top + window.height]
-        self.mss = mss.mss()
+        self.window = self.find_window(self.name)
+        self.box = None
+        self.props = None
+        self.box_points = None
+
         # print(dir(window))
         # print(window.box)
         # print(window.width)
-        # window.activate()
+        self.window.activate()
+        if self.window.isMinimized:
+            self.window.restore()
+            time.sleep(0.5)
+        self.get_window_location()
+
+        "Initialize mss for capturing"
+        self.mss = mss.mss()  # up to 20 ms
+
+    def __del__(self):
+        self.window.minimize()
+
+    def get_window_location(self):
+        """Reads current window location"""
+        "Offsets for windows apps: notepad, paint etc."
+        off_l = 7
+        off_wid = -off_l - 7
+        off_hei = -7
+
+        window = self.window
+        self.box = window.box
+        self.props = {
+                'left': window.left + off_l, "top": window.top,
+                'width': window.width + off_wid, 'height': window.height + off_hei,
+        }
+        self.box_points = [window.left, window.top + 1, window.left + window.width,
+                           window.top + window.height]
 
     # @timeit_mean(30)
     def grab_frame(self):
@@ -76,12 +94,13 @@ class Window:
         return None
 
 
-for x in range(1000):
-    w = Window("note")
+for x in range(1):
+    w = Window("paint")
     fr = w.grab_frame()
     fr = np.array(fr, dtype=np.uint8)
-    fr = imutils.resize(fr, width=800)
+    # fr = imutils.resize(fr, width=800)
     # print(fr)
     cv2.imshow("frame", fr)
-    cv2.waitKey(10)
+    cv2.imwrite("screen.png", fr)
+    # cv2.waitKey(0)
     # time.sleep(0.1)

@@ -4,10 +4,12 @@ import win32api as wapi
 import win32con as wcon
 
 import pyautogui
+import imutils
 import ctypes
 # import my_mouse_control
 import numpy as np
 import time
+import mss
 import cv2
 import os
 
@@ -26,6 +28,8 @@ def old_click():
     ctypes.windll.user32.mouse_event(Mouse.MOUSEEVENTF_LEFTUP)
 
 
+# from functools import
+
 class Window:
     "Class for managing active window"
 
@@ -35,17 +39,31 @@ class Window:
 
         window = self.find_window(self.name)
         self.box = window.box
+        self.props = {
+                'left': window.left, "top": window.top,
+                'width': window.width, 'height': window.height,
+        }
+        # self.props = {
+        #         'left': -500, "top": 0,
+        #         'width': 500, 'height': 250
+        # }
         self.box_points = [window.left, window.top, window.left + window.width,
                            window.top + window.height]
+        self.mss = mss.mss()
         # print(dir(window))
         # print(window.box)
         # print(window.width)
         # window.activate()
 
-    @timeit_mean(30)
+    # @timeit_mean(30)
     def grab_frame(self):
-        screen = ImageGrab.grab(self.box_points, all_screens=True)
-        return screen
+        # screen = ImageGrab.grab(self.box_points, all_screens=True)
+        # return screen
+        # sr = pyautogui.screenshot()
+        sct = self.mss
+        im = sct.grab(self.props)
+        return im
+        # return sr
         # screen.save(fp="screen.png",format='png')
 
     @staticmethod
@@ -58,11 +76,12 @@ class Window:
         return None
 
 
-for x in range(10):
-    w = Window("greg")
+for x in range(1000):
+    w = Window("note")
     fr = w.grab_frame()
     fr = np.array(fr, dtype=np.uint8)
+    fr = imutils.resize(fr, width=800)
     # print(fr)
     cv2.imshow("frame", fr)
-    # cv2.waitKey(1000)
+    cv2.waitKey(10)
     # time.sleep(0.1)

@@ -2,6 +2,12 @@ from PIL import ImageGrab, ImageFilter
 
 import win32api as wapi
 import win32con as wcon
+import win32gui as wgui
+from win32com import client
+# from win32con import client
+
+# import win32con as wcon
+# import win32con.client as comclt
 
 import pyautogui
 import imutils
@@ -13,7 +19,7 @@ import mss
 import cv2
 import os
 
-from my_mouse_control import Mouse
+from my_mouse_controll import Mouse
 from my_timer import timeit_mean, single_time
 
 INTERVAL = 500  # MS
@@ -42,20 +48,17 @@ class Window:
         self.props = None
         self.box_points = None
 
-        # print(dir(window))
-        # print(window.box)
-        # print(window.width)
+        "Initialize mss for capturing"
+        self.mss = mss.mss()  # Capturing object
+
+        self.get_window_location()
+
+    def focus(self):
         self.window.activate()
         if self.window.isMinimized:
             self.window.restore()
             time.sleep(0.5)
         self.get_window_location()
-
-        "Initialize mss for capturing"
-        self.mss = mss.mss()  # up to 20 ms
-
-    def __del__(self):
-        self.window.minimize()
 
     def get_window_location(self):
         """Reads current window location"""
@@ -95,12 +98,26 @@ class Window:
 
 
 for x in range(1):
-    w = Window("paint")
+    w = Window("notepad")
     fr = w.grab_frame()
     fr = np.array(fr, dtype=np.uint8)
     # fr = imutils.resize(fr, width=800)
     # print(fr)
+    # client()
+
+    # print(w.window.title)
+    # w.focus()
+    print(dir(w.window))
+
+    window_id = wgui.FindWindow(None, w.window.title)
+    # print(dir(client))
+    # wgui.PostMessage(window_id, ord('5'))
+    # client.GetObject(window_id)
+    # client.Dispatch()
+
     cv2.imshow("frame", fr)
     cv2.imwrite("screen.png", fr)
     # cv2.waitKey(0)
     # time.sleep(0.1)
+
+    # w.window.minimize()

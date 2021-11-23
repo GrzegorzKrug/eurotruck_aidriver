@@ -97,27 +97,28 @@ class Window:
         return None
 
 
-for x in range(1):
-    w = Window("notepad")
-    fr = w.grab_frame()
-    fr = np.array(fr, dtype=np.uint8)
-    # fr = imutils.resize(fr, width=800)
-    # print(fr)
-    # client()
+if __name__ == "__main__":
+    for x in range(1):
+        w = Window("notepad")
+        fr = w.grab_frame()
+        fr = np.array(fr, dtype=np.uint8)
+        # fr = imutils.resize(fr, width=800)
+        # print(fr)
+        # client()
 
-    # print(w.window.title)
-    # w.focus()
-    print(dir(w.window))
+        # print(w.window.title)
+        # w.focus()
+        print(dir(w.window))
 
-    window_id = wgui.FindWindow(None, w.window.title)
-    # print(dir(client))
-    # wgui.PostMessage(window_id, ord('5'))
-    # client.GetObject(window_id)
-    # client.Dispatch()
+        window_id = wgui.FindWindow(None, w.window.title)
+        # print(dir(client))
+        # wgui.PostMessage(window_id, ord('5'))
+        # client.GetObject(window_id)
+        # client.Dispatch()
 
-    cv2.imshow("frame", fr)
-    cv2.imwrite("screen.png", fr)
-    # cv2.waitKey(0)
-    # time.sleep(0.1)
+        cv2.imshow("frame", fr)
+        cv2.imwrite("screen.png", fr)
+        # cv2.waitKey(0)
+        # time.sleep(0.1)
 
-    # w.window.minimize()
+        # w.window.minimize()

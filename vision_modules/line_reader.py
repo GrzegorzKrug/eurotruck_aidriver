@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
         key = cv2.waitKey(50) & 0xFF
         if key == 32:
-            cv2.imwrite("trouble_frame.png", fr_full)
+            cv2.imwrite("../trouble_frame.png", fr_full)
 
 
 

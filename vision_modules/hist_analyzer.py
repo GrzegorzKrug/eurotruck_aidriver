@@ -56,7 +56,7 @@ def plot_histogram():
         hist, levels = np.histogram(fr_r, 255, range=[0, 255])
         hist_mean = convolve(hist, np.ones(N), 'same') / N
         plt.plot(hist)
-    plt.plot(hist_mean)
+        plt.plot(hist_mean)
 
     plt.figure()
     plt.imshow(fr_r)
@@ -82,9 +82,10 @@ def check_mean_shift_of_hisogram():
     centr = ret.cluster_centers_
 
     plt.plot(hist)
-    plt.plot(der1)
+    # plt.plot(der1)
     plt.grid()
     plt.show()
 
 
+plot_histogram()
 check_mean_shift_of_hisogram()

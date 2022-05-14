@@ -11,14 +11,19 @@ import sys
 import cv2
 import os
 
+from picture_paths import CABIN_PICS_2, multi_apply
+
 from sklearn.cluster import MeanShift, KMeans
+
 
 "3th Party"
 from matplotlib.animation import FuncAnimation
 from collections import deque
 
+
 "Custom"
 from videocap import VideoCap
+
 
 path1 = "src_movies/2021-10-21 17-31-27.mkv"
 path2 = "src_movies/autostrada-notsmooth.mp4"
@@ -194,11 +199,10 @@ if __name__ == "__main__":
             cv2.imwrite("../trouble_frame.png", fr_full)
 
 
-
     anim = FuncAnimation(
             fig,
             func=hist_animation,
-            frames=30  , interval=50,
+            frames=30, interval=50,
             # blit=True
             repeat=False,
     )

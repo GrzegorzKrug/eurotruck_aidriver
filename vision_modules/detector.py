@@ -9,7 +9,6 @@ import os
 
 from itertools import product, combinations
 
-files = glob.glob(f"src_images{os.path.sep}*.png", recursive=True)
 
 from sklearn.cluster import MeanShift, KMeans
 
@@ -20,7 +19,7 @@ def detector(frame):
 
 
 def image_to_features(arr, include_pos=False, pos_weight=0.5):
-    """Transform image pixels to features"""
+    """Convert image to position and value"""
     h, w, *_ = arr.shape
 
     y, x = np.ogrid[:h, :w]
@@ -39,12 +38,14 @@ def image_to_features(arr, include_pos=False, pos_weight=0.5):
 
 
 def image_revert_from_features(arr, keys):
+    raise NotImplemented
     # translation_key = tuple(map(tuple, keys))
     # temp = np.zeros_like(arr)
     # temp[translation_key] = arr
     return temp
 
 
+print(files)
 for p in files:
     mat = cv2.imread(p, cv2.IMREAD_COLOR)
     mat = imutils.resize(mat, height=400)

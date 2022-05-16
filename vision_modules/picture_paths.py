@@ -3,13 +3,16 @@ import os
 
 
 MAIN_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(f"{__file__})"))) + os.path.sep
-PICS_FOLDER = MAIN_FOLDER + "vision_source" + os.path.sep
-OUTPUT_FOLDER = MAIN_FOLDER + "vision_output" + os.path.sep
+PIC_SOURCE_FOLDER = MAIN_FOLDER + "vision_source" + os.path.sep
+PIC_OUTPUT_FOLDER = MAIN_FOLDER + "vision_output" + os.path.sep
 
-ALL_HD = glob.glob(f"{PICS_FOLDER}{os.path.sep}**{os.path.sep}*.jpg", recursive=True)
+ALL_HD = glob.glob(f"{PIC_SOURCE_FOLDER}{os.path.sep}**{os.path.sep}*.jpg", recursive=True)
 ALL_HD.sort()
 
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+COLORS_PATHS = glob.glob(f"{PIC_SOURCE_FOLDER+'histogram_validation'}{os.path.sep}**{os.path.sep}*.png", recursive=True)
+# print(COLORS_PATHS)
+
+os.makedirs(PIC_OUTPUT_FOLDER, exist_ok=True)
 
 
 def filter_paths(pic_list_paths, filters):

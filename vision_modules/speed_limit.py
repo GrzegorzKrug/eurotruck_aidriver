@@ -62,4 +62,7 @@ if __name__ == "__main__":
             pool=POOL)
 
     tend = time.time()
+
     print("Whole script took ", time_formatter(tend - t0))
+
+    del POOL

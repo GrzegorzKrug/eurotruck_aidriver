@@ -11,8 +11,7 @@ import sys
 import cv2
 import os
 
-from picture_paths import CABIN_PICS_2, multi_apply
-
+from picture_paths import CABIN_PICS_2
 from sklearn.cluster import MeanShift, KMeans
 
 

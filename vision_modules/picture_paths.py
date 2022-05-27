@@ -9,13 +9,27 @@ PIC_OUTPUT_FOLDER = MAIN_FOLDER + "vision_output" + os.path.sep
 ALL_HD = glob.glob(f"{PIC_SOURCE_FOLDER}{os.path.sep}**{os.path.sep}*.jpg", recursive=True)
 ALL_HD.sort()
 
-COLORS_PATHS = glob.glob(f"{PIC_SOURCE_FOLDER+'histogram_validation'}{os.path.sep}**{os.path.sep}*.png", recursive=True)
-# print(COLORS_PATHS)
+PICS_AUTOSTRADA = glob.glob(f"{PIC_SOURCE_FOLDER}autostrada-notsmooth**{os.path.sep}*.png",
+                            recursive=True)
+PICS_AUTOSTRADA.copy()
+
+COLORS_PATHS = glob.glob(
+        f"{PIC_SOURCE_FOLDER + 'histogram_validation'}{os.path.sep}**{os.path.sep}*.png", recursive=True
+)
 
 os.makedirs(PIC_OUTPUT_FOLDER, exist_ok=True)
 
 
 def filter_paths(pic_list_paths, filters):
+    """
+    Filters pictures paths from steam screenshots
+    Args:
+        pic_list_paths:
+        filters:
+
+    Returns:
+
+    """
     filters.sort(key=lambda x: x[0])
     for (f1l, f1h), (f2l, f2h) in zip(filters, filters[1:]):
         if f1h >= f2l:
@@ -42,3 +56,6 @@ CABIN_PICS_2 = filter_paths(ALL_HD, [(0, 20220307164615),
 
 # print(CABIN_PICS_1)
 # print(CABIN_PICS_2)
+
+if __name__ == "__main__":
+    print(PICS_AUTOSTRADA)

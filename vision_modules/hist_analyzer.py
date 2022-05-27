@@ -14,7 +14,7 @@ import sys
 import cv2
 import os
 
-from picture_paths import CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS
+from picture_paths import CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS, PICS_AUTOSTRADA
 from multiprocoess_functions import *
 
 
@@ -35,14 +35,14 @@ p = files[0]
 foi_roadsample = FrameFoi(390 / 720, 400 / 720, 468 / 1280, 700 / 1280)
 foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # Original road
 # foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 700 / 1280)  #
-foi_roadsample = FrameFoi(350 / 720, 445 / 720, 800 / 1280, 850 / 1280)  #
+# foi_roadsample = FrameFoi(350 / 720, 445 / 720, 800 / 1280, 850 / 1280)  #
 
 fr_full = cv2.imread(p, cv2.IMREAD_COLOR)
 fr = imutils.resize(fr_full, width=800)
 fr_gray = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
 
 
-def get_smooth_hist(pic_rgb, N=3):
+def get_smooth_hist(pic_rgb, N=30):
     his_r, his_g, his_b, levels = hist_3(pic_rgb)
     if N >= 2:
         if N % 2:
@@ -54,10 +54,6 @@ def get_smooth_hist(pic_rgb, N=3):
     return his_r, his_g, his_b
 
 
-def locate_threshold(his, amp=100, min_bright=100):
-    pass
-    # print(len(his))
-    # for i in range(255)
 
 
 def draw_line_histogram(pic_rgb, smooth=2):
@@ -65,7 +61,7 @@ def draw_line_histogram(pic_rgb, smooth=2):
 
     if len(c) > 0 and type(c[0]) is int and c[0] == 3:
         # his_r, his_g, his_b, levels = hist_3(pic_rgb)
-        his_r, his_g, his_b = get_smooth_hist(pic_rgb, 5)
+        his_r, his_g, his_b = get_smooth_hist(pic_rgb)
         # his_r, his_g, his_b, levels = hist_3(pic_rgb)
         plt.plot(his_r, color='r')
         plt.plot(his_g, color='g')
@@ -77,19 +73,65 @@ def draw_line_histogram(pic_rgb, smooth=2):
         plt.grid()
 
 
+def find_top_peak(arr):
+    assert len(arr.shape) == 1, "Please pass list"
+    sz = arr.shape[0]
+    # print(sz)
+    indexes = np.zeros((3, 2), dtype=int)
+    indexes[:, 0] = sz
+    indexes[:, 1] = arr[-1]
+
+    looking_for_end = True
+    looking_for_peak = False
+    looking_for_start = False
+
+    for i in range(254, -1, -1):
+        v = arr[i]
+        if looking_for_end:
+            if v <= indexes[2, 1]:
+                indexes[2, 0] = i
+                indexes[2, 1] = v
+            else:
+                looking_for_end = False
+                looking_for_peak = True
+
+        elif looking_for_peak:
+            if v >= indexes[1, 1]:
+                indexes[1, 0] = i
+                indexes[1, 1] = v
+            else:
+                looking_for_peak = False
+                looking_for_start = True
+
+        elif looking_for_start:
+            if v <= indexes[0, 0]:
+                indexes[0, 0] = i
+                indexes[0, 1] = v
+            else:
+                looking_for_start = False
+
+    # print(indexes)
+    return tuple(indexes[:, 0])
+
+
 def mask_lines_based_on_hist(pic):
     fr = pic
-    # fr = foi_roadsample.get_foi(pic)
-    # fr = cv2.cvtColor(pic, cv2.COLOR_BGR2GRAY)
-    # fr = np.stack([fr, fr, fr], axis=2)
-    # print(fr.shape)
-    # hr, hg, hb = get_3d_hist(fr)
+    hr, hg, hb = get_smooth_hist(fr)
+
+    mn, pk, mx = find_top_peak(hr)
+
     # print(len(hr), len(hb), len(hb))
     # locate_threshold(hr)
     b, g, r = fr[:, :, 0], fr[:, :, 1], fr[:, :, 2]
-    mask_r = (100 < r) & (r < 150)
-    mask_g = (105 < g) & (g < 140)
-    mask_b = (88 < b) & (b < 115)
+    mask_r = (mn <= r) & (r <= mx)
+
+    mn, pk, mx = find_top_peak(hg)
+    mask_g = (mn <= g) & (g <= mx)
+
+    mn, pk, mx = find_top_peak(hb)
+    mask_b = (mn <= b) & (b <= mx)
+    # mask_g = (105 < g) & (g < 140)
+    # mask_b = (88 < b) & (b < 115)
     mask = mask_r & mask_g & mask_b
 
     fr[mask] = [0, 0, 0]
@@ -131,16 +173,16 @@ def clip_pobocze(img):
 PICS = CABIN_PICS_1
 
 if __name__ == "__main__":
+    t0 = time.time()
     pool = mpc.Pool(10)
     # pool=None
     # multi_picture_export(PICS, subfolder="hist-1", function=mask_lines_based_on_hist)
     # multi_apply(PICS, subfolder="hist-1", function=foi_roadsample.get_foi, postfix="oryg")
     multi_picture_export(
-            CABIN_PICS_2, subfolder="hist-1", prefix="hist",
+            PICS_AUTOSTRADA, subfolder="autostrada", prefix="hist",
             function=mask_lines_based_on_hist,
             matplot_f=draw_line_histogram,
             clip_f=foi_roadsample.get_foi,
-            # clip_f=clip_pobocze,
             pool=pool)
     # print(COLORS_PATHS)
     # multi_picture_export(
@@ -153,3 +195,5 @@ if __name__ == "__main__":
 
     # plot_histogram()
     # check_mean_shift_of_hisogram()
+    tend = time.time()
+    print(f"Whole script finished in: {time_formatter(tend - t0)}")

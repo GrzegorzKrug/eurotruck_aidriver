@@ -24,6 +24,8 @@ use('ggplot')
 CURR_SPEEC_LIMIT = slice(712, 728, None), slice(1500, 1521, None)
 ROAD_SIGN_LIMIT = slice(784, 800, None), slice(1500, 1522, None)
 
+CURR_SPEED_720 = slice(473, 485, None), slice(1000, 1018, None)
+
 
 def clip_curr_speed(p):
     roi = p[CURR_SPEEC_LIMIT]

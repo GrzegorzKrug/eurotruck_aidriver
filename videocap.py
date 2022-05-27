@@ -64,8 +64,8 @@ class VideoCap:
 #         cv2.imwrite(pth, frame)
 
 
-def save_frames(src_path, interval=1, max_size=1024, prefix=None):
-    prefix = prefix if prefix else ""
+def save_frames(src_path, interval=1, max_size=1024, prefix=None, max_frames=None):
+    prefix = str(prefix) + "-" if prefix else ""
     basename = os.path.basename(src_path)
 
     "Read input"
@@ -84,6 +84,7 @@ def save_frames(src_path, interval=1, max_size=1024, prefix=None):
     else:
         key = "width"
         v = w
+    print(f"Max size: {max_size}, v:{v}")
     if v > max_size:
         dwn_f = lambda x: imutils.resize(x, **{key: max_size})
     else:
@@ -95,9 +96,12 @@ def save_frames(src_path, interval=1, max_size=1024, prefix=None):
         out_path = dest + f"frame-{p:>05}.png"
         pic = dwn_f(pic)
         cv2.imwrite(out_path, pic)
-        # if p > 10000:
-        #     break
+        if max_frames and i > max_frames:
+            break
 
 
 if __name__ == "__main__":
-    save_frames(os.path.join("vision_source", "src_movies", "autostrada-notsmooth.mp4"), interval=20)
+    # save_frames(os.path.join("vision_source", "src_movies", "autostrada-notsmooth.mp4"), interval=40)
+    save_frames(
+            os.path.join("vision_source", "src_movies", "autostrada-notsmooth.mp4"),
+            interval=1, prefix="numbers", max_size=2000, max_frames=850)

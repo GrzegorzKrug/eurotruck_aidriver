@@ -32,17 +32,17 @@ files = CABIN_PICS_2
 
 p = files[0]
 
-foi_roadsample = FrameFoi(390 / 720, 400 / 720, 468 / 1280, 700 / 1280)
+# foi_roadsample = FrameFoi(390 / 720, 400 / 720, 468 / 1280, 700 / 1280)
 foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # Original road
-# foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 700 / 1280)  #
-# foi_roadsample = FrameFoi(350 / 720, 445 / 720, 800 / 1280, 850 / 1280)  #
+
+foi_window_view = FrameFoi(100 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # viewport
 
 fr_full = cv2.imread(p, cv2.IMREAD_COLOR)
 fr = imutils.resize(fr_full, width=800)
 fr_gray = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
 
 
-def get_smooth_hist(pic_rgb, N=30):
+def get_smooth_hist(pic_rgb, N=5):
     his_r, his_g, his_b, levels = hist_3(pic_rgb)
     if N >= 2:
         if N % 2:
@@ -54,9 +54,12 @@ def get_smooth_hist(pic_rgb, N=30):
     return his_r, his_g, his_b
 
 
+def plot_line_histogram(pic_rgb):
+    pic = foi_roadsample.get_foi(pic_rgb)
+    return plot_smooth_histogram(pic)
 
 
-def draw_line_histogram(pic_rgb, smooth=2):
+def plot_smooth_histogram(pic_rgb, smooth=2):
     h, w, *c = pic_rgb.shape
 
     if len(c) > 0 and type(c[0]) is int and c[0] == 3:
@@ -115,14 +118,13 @@ def find_top_peak(arr):
 
 
 def mask_lines_based_on_hist(pic):
-    fr = pic
+    pic = pic.copy()
+    fr = foi_roadsample.get_foi(pic)
     hr, hg, hb = get_smooth_hist(fr)
 
-    mn, pk, mx = find_top_peak(hr)
+    b, g, r = pic[:, :, 0], pic[:, :, 1], pic[:, :, 2]
 
-    # print(len(hr), len(hb), len(hb))
-    # locate_threshold(hr)
-    b, g, r = fr[:, :, 0], fr[:, :, 1], fr[:, :, 2]
+    mn, pk, mx = find_top_peak(hr)
     mask_r = (mn <= r) & (r <= mx)
 
     mn, pk, mx = find_top_peak(hg)
@@ -130,13 +132,11 @@ def mask_lines_based_on_hist(pic):
 
     mn, pk, mx = find_top_peak(hb)
     mask_b = (mn <= b) & (b <= mx)
-    # mask_g = (105 < g) & (g < 140)
-    # mask_b = (88 < b) & (b < 115)
+
     mask = mask_r & mask_g & mask_b
+    pic[mask] = [0, 0, 0]
 
-    fr[mask] = [0, 0, 0]
-
-    return fr
+    return pic
 
 
 def check_mean_shift_of_hisogram():
@@ -174,15 +174,15 @@ PICS = CABIN_PICS_1
 
 if __name__ == "__main__":
     t0 = time.time()
-    pool = mpc.Pool(10)
+    pool = mpc.Pool(15)
     # pool=None
     # multi_picture_export(PICS, subfolder="hist-1", function=mask_lines_based_on_hist)
     # multi_apply(PICS, subfolder="hist-1", function=foi_roadsample.get_foi, postfix="oryg")
     multi_picture_export(
             PICS_AUTOSTRADA, subfolder="autostrada", prefix="hist",
             function=mask_lines_based_on_hist,
-            matplot_f=draw_line_histogram,
-            clip_f=foi_roadsample.get_foi,
+            matplot_f=plot_line_histogram,
+            clip_final_pic=foi_window_view.get_foi,
             pool=pool)
     # print(COLORS_PATHS)
     # multi_picture_export(

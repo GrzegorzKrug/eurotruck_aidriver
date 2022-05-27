@@ -42,7 +42,7 @@ def timedecorator(f):
 def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
         overwrite=False,
         function=None, matplot_f=None,
-        clip_f=None,
+        clip_final_pic=None,
         pool=None,
         **kw):
     """
@@ -87,7 +87,7 @@ def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
         single_args = (
                 subfolder, prefix, name, postfix, overwrite,
                 ph, ext,
-                function, clip_f, matplot_f
+                function, clip_final_pic, matplot_f
         )
 
         if pool is None:
@@ -119,7 +119,8 @@ def _multi_picture_thread(a):
 def _multi_picture_thread_executor(
         subfolder, prefix, name, postfix, overwrite,
         ph, ext,
-        function=None, clip_f=None,
+        function=None,
+        clip_out_pic=None,
         matplot_f=None,
         **kw,
 ):
@@ -127,11 +128,7 @@ def _multi_picture_thread_executor(
     MIN_ORIG_SIZE = 1000
 
     dst = f"{PIC_OUTPUT_FOLDER}{subfolder}{prefix}{name}{postfix}.{ext}"
-    img_full = cv2.imread(ph, cv2.IMREAD_COLOR)
-    if clip_f:
-        img_input = clip_f(img_full)
-    else:
-        img_input = img_full
+    img_input = cv2.imread(ph, cv2.IMREAD_COLOR)
 
     if function:
         "Change image array"
@@ -160,7 +157,16 @@ def _multi_picture_thread_executor(
         cv2.imwrite(dst, img_input)
 
     "STACKING"
-    stk = [st for st in [img_input, function_im, matplot_im] if st is not None]
+
+    if clip_out_pic and function_im is not None:
+        img_out = clip_out_pic(function_im)
+    else:
+        img_out = function_im
+
+    if clip_out_pic:
+        img_input = clip_out_pic(img_input)
+
+    stk = [st for st in [img_input, img_out, matplot_im] if st is not None]
     H, W, C = [*zip(*[st.shape for st in stk])]
     hmin = min(H)
     wmin = min(W)

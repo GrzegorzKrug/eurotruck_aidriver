@@ -40,7 +40,7 @@ def timedecorator(f):
 
 @timedecorator
 def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
-        overwrite=False,
+        overwrite=False, attach_original=True,
         function=None, matplot_f=None,
         clip_final_pic=None,
         pool=None,
@@ -87,6 +87,7 @@ def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
         single_args = (
                 subfolder, prefix, name, postfix, overwrite,
                 ph, ext,
+                attach_original,
                 function, clip_final_pic, matplot_f
         )
 
@@ -119,6 +120,7 @@ def _multi_picture_thread(a):
 def _multi_picture_thread_executor(
         subfolder, prefix, name, postfix, overwrite,
         ph, ext,
+        attach_original=True,
         function=None,
         clip_out_pic=None,
         matplot_f=None,
@@ -128,33 +130,34 @@ def _multi_picture_thread_executor(
     MIN_ORIG_SIZE = 1000
 
     dst = f"{PIC_OUTPUT_FOLDER}{subfolder}{prefix}{name}{postfix}.{ext}"
-    img_input = cv2.imread(ph, cv2.IMREAD_COLOR)
+    img_input_bgr = cv2.imread(ph, cv2.IMREAD_COLOR)
+    # print(name)
 
     if function:
         "Change image array"
-        function_im = function(img_input.copy(), **kw)
+        function_im = function(img_input_bgr.copy(), **kw)
     else:
         function_im = None
 
     if matplot_f:
         "Generate plot in function"
         fig = plt.figure(figsize=(10, 7))
-        matplot_f(img_input.copy(), **kw)
+        matplot_f(img_input_bgr.copy(), **kw)
         plt.tight_layout()
         fig.canvas.draw()
         matplot_im = np.asarray(fig.canvas.buffer_rgba(), dtype=np.uint8)
-        matplot_im = cv2.cvtColor(matplot_im, cv2.COLOR_RGBA2RGB)
+        matplot_im = cv2.cvtColor(matplot_im, cv2.COLOR_RGBA2BGR)
         plt.close()
     else:
         matplot_im = None
 
     if function is None and matplot_f is None and not os.path.isfile(dst):
         "Just copy"
-        cv2.imwrite(dst, img_input)
+        cv2.imwrite(dst, img_input_bgr)
 
     elif overwrite:
         "Just copy and overwrite"
-        cv2.imwrite(dst, img_input)
+        cv2.imwrite(dst, img_input_bgr)
 
     "STACKING"
 
@@ -163,8 +166,13 @@ def _multi_picture_thread_executor(
     else:
         img_out = function_im
 
-    if clip_out_pic:
-        img_input = clip_out_pic(img_input)
+    if attach_original and clip_out_pic:
+        img_input = clip_out_pic(img_input_bgr)
+    elif attach_original:
+        img_input = img_input_bgr
+        pass
+    else:
+        img_input = None
 
     stk = [st for st in [img_input, img_out, matplot_im] if st is not None]
     H, W, C = [*zip(*[st.shape for st in stk])]

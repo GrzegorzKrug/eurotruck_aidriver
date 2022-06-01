@@ -3,7 +3,7 @@ import imutils
 import numpy as np
 
 from scipy.signal import convolve
-from line_reader import FrameFoi
+from frame_foi import FrameFoi
 from sklearn.cluster import MeanShift, KMeans
 import multiprocessing as mpc
 
@@ -16,6 +16,7 @@ import os
 
 from picture_paths import CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS, PICS_AUTOSTRADA
 from multiprocoess_functions import *
+from frame_foi import foi_roadsample, foi_window_view
 
 
 def hist_3(arr):
@@ -32,24 +33,19 @@ files = CABIN_PICS_2
 
 p = files[0]
 
-# foi_roadsample = FrameFoi(390 / 720, 400 / 720, 468 / 1280, 700 / 1280)
-foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # Original road
-
-foi_window_view = FrameFoi(100 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # viewport
-
 fr_full = cv2.imread(p, cv2.IMREAD_COLOR)
 fr = imutils.resize(fr_full, width=800)
 fr_gray = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
 
 
-def get_smooth_hist(pic_rgb, N=5):
+def get_smooth_hist(pic_rgb, smooth=2):
     his_r, his_g, his_b, levels = hist_3(pic_rgb)
-    if N >= 2:
-        if N % 2:
-            N += 1
-        his_b = convolve(his_b, np.ones(N), 'same') / N
-        his_g = convolve(his_g, np.ones(N), 'same') / N
-        his_r = convolve(his_r, np.ones(N), 'same') / N
+    if smooth >= 2:
+        if smooth % 2:
+            smooth += 1
+        his_b = convolve(his_b, np.ones(smooth), 'same') / smooth
+        his_g = convolve(his_g, np.ones(smooth), 'same') / smooth
+        his_r = convolve(his_r, np.ones(smooth), 'same') / smooth
 
     return his_r, his_g, his_b
 
@@ -59,12 +55,13 @@ def plot_line_histogram(pic_rgb):
     return plot_smooth_histogram(pic)
 
 
-def plot_smooth_histogram(pic_rgb, smooth=2):
-    h, w, *c = pic_rgb.shape
+def plot_smooth_histogram(pic_bgr):
+    """BGR"""
+    h, w, *c = pic_bgr.shape
 
     if len(c) > 0 and type(c[0]) is int and c[0] == 3:
         # his_r, his_g, his_b, levels = hist_3(pic_rgb)
-        his_r, his_g, his_b = get_smooth_hist(pic_rgb)
+        his_b, his_g, his_r = get_smooth_hist(pic_bgr)
         # his_r, his_g, his_b, levels = hist_3(pic_rgb)
         plt.plot(his_r, color='r')
         plt.plot(his_g, color='g')
@@ -114,13 +111,15 @@ def find_top_peak(arr):
                 looking_for_start = False
 
     # print(indexes)
-    return tuple(indexes[:, 0])
+    mn, pk, mx = indexes[:, 0]
+
+    return mn, pk, mx
 
 
 def mask_lines_based_on_hist(pic):
     pic = pic.copy()
     fr = foi_roadsample.get_foi(pic)
-    hr, hg, hb = get_smooth_hist(fr)
+    hb, hg, hr = get_smooth_hist(fr)
 
     b, g, r = pic[:, :, 0], pic[:, :, 1], pic[:, :, 2]
 
@@ -134,6 +133,42 @@ def mask_lines_based_on_hist(pic):
     mask_b = (mn <= b) & (b <= mx)
 
     mask = mask_r & mask_g & mask_b
+    pic = np.ones(pic.shape, dtype=np.uint8) * 255
+    pic[mask] = [0, 0, 0]
+
+    return pic
+
+
+def mask_lines_on_hist_delta(pic):
+    """BGR"""
+    pic = pic.copy()
+    fr = foi_roadsample.get_foi(pic)
+
+    hb, hg, hr = get_smooth_hist(fr, )
+
+    b, g, r = pic[:, :, 0], pic[:, :, 1], pic[:, :, 2]
+
+    mnr, pkr, mxr = find_top_peak(hr)
+    mask_r = (mnr <= r) & (r <= mxr)
+
+    mng, pkg, mxg = find_top_peak(hg)
+    mask_g = (mng <= g) & (g <= mxg)
+
+    mnb, pkb, mxb = find_top_peak(hb)
+    mask_b = (mnb <= b) & (b <= mxb)
+
+    mask = mask_r & mask_g & mask_b
+
+    # delta = b.astype(float) - r.astype(float)
+    delta_rg = np.abs(r.astype(float) - g.astype(float))
+    mask_rg = delta_rg <= 20
+    mask_rb = (g.astype(float) - b.astype(float)) <= (delta_rg * 2)
+    mask = mask & mask_rg & (mask_rb)
+
+    print(f"nm: r: {mnr}-{pkr}-{mxr}, gr:{mng}-{pkg}-{mxg}, bl:{mnb}-{pkb}-{mxb}")
+    print(f"nm: r: {pkr:>4} {mxr - mnr:>4}, gr:{pkg:>4} {mxg - mng:>4}, bl:{pkb:>4} {mxb - mnb:>4}")
+
+    pic = np.ones(pic.shape, dtype=np.uint8) * 255
     pic[mask] = [0, 0, 0]
 
     return pic
@@ -174,23 +209,26 @@ PICS = CABIN_PICS_1
 
 if __name__ == "__main__":
     t0 = time.time()
-    pool = mpc.Pool(15)
-    # pool=None
-    # multi_picture_export(PICS, subfolder="hist-1", function=mask_lines_based_on_hist)
-    # multi_apply(PICS, subfolder="hist-1", function=foi_roadsample.get_foi, postfix="oryg")
+    pool = mpc.Pool(10)
+    # pool = None
+
+    # multi_picture_export(
+    #         PICS_AUTOSTRADA, subfolder="autostrada-foi",
+    #         function=foi_roadsample.get_foi,
+    #         pool=pool)
+
     multi_picture_export(
-            PICS_AUTOSTRADA, subfolder="autostrada", prefix="hist",
+            PICS_AUTOSTRADA, subfolder="autostrada-hist",
             function=mask_lines_based_on_hist,
             matplot_f=plot_line_histogram,
-            clip_final_pic=foi_window_view.get_foi,
+            # clip_final_pic=foi_window_view.get_foi,
             pool=pool)
-    # print(COLORS_PATHS)
+
     # multi_picture_export(
-    #         COLORS_PATHS, subfolder="colors-1",
-    #         # function=mask_lines_based_on_hist,
-    #         matplot_f=draw_line_histogram,
-    #         # clip_f=foi_roadsample.get_foi,
-    #         # clip_f=clip_pobocze,
+    #         PICS_AUTOSTRADA, subfolder="autostrada-hist", postfix="with_model",
+    #         function=mask_lines_on_hist_delta,
+    #         matplot_f=plot_line_histogram,
+    #         clip_final_pic=foi_window_view.get_foi,
     #         pool=pool)
 
     # plot_histogram()

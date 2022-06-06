@@ -131,7 +131,7 @@ def _multi_picture_thread_executor(
 
     dst = f"{PIC_OUTPUT_FOLDER}{subfolder}{prefix}{name}{postfix}.{ext}"
     img_input_bgr = cv2.imread(ph, cv2.IMREAD_COLOR)
-    # print(name)
+    print(name)
 
     if function:
         "Change image array"
@@ -203,27 +203,26 @@ def _multi_picture_thread_executor(
         h, w, c = im.shape
         ratio = h / w
 
-        if ratio > 1.5:
+        if ratio > 1.6:
             kw = {'height': sh}
             axis = 1
             sep = np.zeros((sh, 2, 3))
             sep[:, 1] = [255, 255, 255]
-
-        elif ratio < 0.5:
+        elif ratio < 0.6:
             kw = {'width': sw}
             axis = 0
             sep = np.zeros((2, sw, 3))
             sep[1, :] = [255, 255, 255]
-        elif sh > sw:
-            kw = {'height': sh}
-            axis = 1
-            sep = np.zeros((sh, 2, 3))
-            sep[:, 1] = [255, 255, 255]
+        # elif sw > sh:
+        #     kw = {'width': sw}
+        #     axis = 0
+        #     sep = np.zeros((2, sw, 3))
+        #     sep[1, :] = [255, 255, 255]
         else:
-            kw = {'width': sw}
-            axis = 0
-            sep = np.zeros((2, sw, 3))
-            sep[1, :] = [255, 255, 255]
+            kw = {'height': sh}
+            axis = 1
+            sep = np.zeros((sh, 2, 3))
+            sep[:, 1] = [255, 255, 255]
 
         im = imutils.resize(im, **kw)
         # print(stacked_image.shape, im.shape, axis)

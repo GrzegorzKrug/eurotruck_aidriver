@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import imutils
 import numpy as np
+from numba import jit
 
 from scipy.signal import convolve
-from frame_foi import FrameFoi
+# from frame_foi import FrameFoi
 from sklearn.cluster import MeanShift, KMeans
 import multiprocessing as mpc
 
@@ -16,7 +17,7 @@ import os
 
 from picture_paths import CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS, PICS_AUTOSTRADA
 from multiprocoess_functions import *
-from frame_foi import foi_roadsample, foi_window_view
+from frame_foi import foi_roadsample, foi_window_view, foi_roadsample_low, foi_roadsample_high
 
 
 def hist_3(arr):
@@ -38,30 +39,76 @@ fr = imutils.resize(fr_full, width=800)
 fr_gray = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
 
 
-def get_smooth_hist(pic_rgb, smooth=2):
+def get_smooth_hist(pic_rgb, smooth=10, smooth_f='mean'):
     his_r, his_g, his_b, levels = hist_3(pic_rgb)
     if smooth >= 2:
         if smooth % 2:
             smooth += 1
-        his_b = convolve(his_b, np.ones(smooth), 'same') / smooth
-        his_g = convolve(his_g, np.ones(smooth), 'same') / smooth
-        his_r = convolve(his_r, np.ones(smooth), 'same') / smooth
+
+        if smooth_f == 'mean':
+            his_b = convolve(his_b, np.ones(smooth), 'same') / smooth
+            his_g = convolve(his_g, np.ones(smooth), 'same') / smooth
+            his_r = convolve(his_r, np.ones(smooth), 'same') / smooth
+
+        elif smooth_f == 'median':
+            his_b = fast_rolling_median(his_b, smooth=smooth)
+            his_g = fast_rolling_median(his_g, smooth=smooth)
+            his_r = fast_rolling_median(his_r, smooth=smooth)
+
+        elif smooth_f == 'max':
+            his_b = fast_rolling_max(his_b, smooth=smooth)
+            his_g = fast_rolling_max(his_g, smooth=smooth)
+            his_r = fast_rolling_max(his_r, smooth=smooth)
 
     return his_r, his_g, his_b
 
 
-def plot_line_histogram(pic_rgb):
-    pic = foi_roadsample.get_foi(pic_rgb)
+@jit()
+def fast_rolling_median(arr, smooth=10):
+    halfN = smooth // 2
+    size = len(arr)
+    out = np.zeros_like(arr)
+    for ind in range(size):
+        i1 = ind - halfN
+        i1 = 0 if i1 < 0 else i1
+        i2 = ind + halfN
+        i2 = size if i2 >= size else i2
+        roi = arr[i1:i2]
+        # print(roi.shape)
+        out[ind] = np.median(roi)
+
+    return out
+
+
+@jit()
+def fast_rolling_max(arr, smooth=10):
+    halfN = smooth // 2
+    size = len(arr)
+    out = np.zeros_like(arr)
+    for ind in range(size):
+        i1 = ind - halfN
+        i1 = 0 if i1 < 0 else i1
+        i2 = ind + halfN
+        i2 = size if i2 >= size else i2
+        roi = arr[i1:i2]
+        out[ind] = np.max(roi)
+
+    return out
+
+
+def plot_line_histogram(pic):
+    # pic = foi_roadsample.get_foi(pic_rgb)
+    pic = foi_roadsample_low.get_foi(pic)
     return plot_smooth_histogram(pic)
 
 
-def plot_smooth_histogram(pic_bgr):
+def plot_smooth_histogram(pic_bgr, smooth=3):
     """BGR"""
     h, w, *c = pic_bgr.shape
 
     if len(c) > 0 and type(c[0]) is int and c[0] == 3:
         # his_r, his_g, his_b, levels = hist_3(pic_rgb)
-        his_b, his_g, his_r = get_smooth_hist(pic_bgr)
+        his_b, his_g, his_r = get_smooth_hist(pic_bgr, smooth=smooth)
         # his_r, his_g, his_b, levels = hist_3(pic_rgb)
         plt.plot(his_r, color='r')
         plt.plot(his_g, color='g')
@@ -118,7 +165,8 @@ def find_top_peak(arr):
 
 def mask_lines_based_on_hist(pic):
     pic = pic.copy()
-    fr = foi_roadsample.get_foi(pic)
+    # fr = foi_roadsample.get_foi(pic)
+    fr = foi_roadsample_low.get_foi(pic)
     hb, hg, hr = get_smooth_hist(fr)
 
     b, g, r = pic[:, :, 0], pic[:, :, 1], pic[:, :, 2]
@@ -161,12 +209,14 @@ def mask_lines_on_hist_delta(pic):
 
     # delta = b.astype(float) - r.astype(float)
     delta_rg = np.abs(r.astype(float) - g.astype(float))
-    mask_rg = delta_rg <= 20
-    mask_rb = (g.astype(float) - b.astype(float)) <= (delta_rg * 2)
-    mask = mask & mask_rg & (mask_rb)
+    # mask_rg = delta_rg <= 20
 
-    print(f"nm: r: {mnr}-{pkr}-{mxr}, gr:{mng}-{pkg}-{mxg}, bl:{mnb}-{pkb}-{mxb}")
-    print(f"nm: r: {pkr:>4} {mxr - mnr:>4}, gr:{pkg:>4} {mxg - mng:>4}, bl:{pkb:>4} {mxb - mnb:>4}")
+    mask_rb = (r.astype(float) - b.astype(float)) > -5
+
+    mask = mask & mask_rb
+
+    # print(f"nm: r: {mnr}-{pkr}-{mxr}, gr:{mng}-{pkg}-{mxg}, bl:{mnb}-{pkb}-{mxb}")
+    # print(f"nm: r: {pkr:>4} {mxr - mnr:>4}, gr:{pkg:>4} {mxg - mng:>4}, bl:{pkb:>4} {mxb - mnb:>4}")
 
     pic = np.ones(pic.shape, dtype=np.uint8) * 255
     pic[mask] = [0, 0, 0]
@@ -220,8 +270,11 @@ if __name__ == "__main__":
     multi_picture_export(
             PICS_AUTOSTRADA, subfolder="autostrada-hist",
             function=mask_lines_based_on_hist,
+            # function=foi_roadsample.get_foi,
             matplot_f=plot_line_histogram,
-            # clip_final_pic=foi_window_view.get_foi,
+            clip_final_pic=foi_window_view.get_foi,
+            # clip_final_pic=foi_roadsample.get_foi,
+            # clip_final_pic=foi_roadsample_low.get_foi,
             pool=pool)
 
     # multi_picture_export(

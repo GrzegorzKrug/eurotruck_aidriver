@@ -50,9 +50,13 @@ class FrameFoi:
 
 
 foi_roadsample = FrameFoi(400 / 720, 445 / 720, 468 / 1280, 1000 / 1280)  # Original Road
-foi_roadsample = FrameFoi(270 / 720, 445 / 720, 468 / 1280, 1000 / 1280)  # Bigger road
+# foi_roadsample = FrameFoi(270 / 720, 445 / 720, 468 / 1280, 1000 / 1280)  # Bigger road
 # foi_roadsample = FrameFoi(200 / 720, 445 / 720, 200 / 1280, 1100 / 1280)  # Wide Thin
 # foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 1000 / 1280)  # Original road
+foi_roadsample_low = FrameFoi(400 / 720, 445 / 720, 460 / 1280, 800 / 1280)  # Late Edit to get left side
+foi_roadsample_high = FrameFoi(300 / 720, 445 / 720, 460 / 1280, 800 / 1280)  # Late Edit to get left side
+
 foi_window_view = FrameFoi(100 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # viewport
+foi_window_view = FrameFoi(250 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # viewport
 
 __all__ = ['foi_roadsample', 'foi_window_view']

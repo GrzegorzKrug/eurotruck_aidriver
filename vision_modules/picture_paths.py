@@ -13,9 +13,15 @@ PICS_AUTOSTRADA = glob.glob(f"{PIC_SOURCE_FOLDER}autostrada-notsmooth**{os.path.
                             recursive=True)
 PICS_AUTOSTRADA.copy()
 
+PICS_FRANKFURT = glob.glob(f"{PIC_SOURCE_FOLDER}frankfurt-munch{os.path.sep}**.png", )
+PICS_FRANKFURT_TRAFFIC = glob.glob(f"{PIC_SOURCE_FOLDER}frankfurt-munch-traffic{os.path.sep}**.png", )
+PICS_FRANKFURT.sort()
+PICS_FRANKFURT_TRAFFIC.sort()
+
 COLORS_PATHS = glob.glob(
         f"{PIC_SOURCE_FOLDER + 'histogram_validation'}{os.path.sep}**{os.path.sep}*.png", recursive=True
 )
+PICS_LINES = glob.glob(f"{PIC_SOURCE_FOLDER}lines{os.path.sep}**.png", )
 
 os.makedirs(PIC_OUTPUT_FOLDER, exist_ok=True)
 
@@ -58,4 +64,8 @@ CABIN_PICS_2 = filter_paths(ALL_HD, [(0, 20220307164615),
 # print(CABIN_PICS_2)
 
 if __name__ == "__main__":
-    print(PICS_AUTOSTRADA)
+    # print(PICS_AUTOSTRADA)
+    print("Normal")
+    print(PICS_FRANKFURT)
+    print("Traffic")
+    print(PICS_FRANKFURT_TRAFFIC)

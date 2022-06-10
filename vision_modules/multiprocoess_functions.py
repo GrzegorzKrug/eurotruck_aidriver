@@ -44,6 +44,8 @@ def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
         function=None, matplot_f=None,
         clip_final_pic=None,
         pool=None,
+        loop_start=None,
+        loop_lim=None,
         **kw):
     """
     Copy picture to new location. Can apply function to change picture or generate matplot figures.
@@ -79,7 +81,7 @@ def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
     all_process = []
     # print(f"Pool: {pool}")
 
-    for ph in pic_list:
+    for i, ph in enumerate(pic_list):
         name = os.path.basename(ph)
         *name, ext = name.split('.')
         name = ' '.join(name)
@@ -91,6 +93,10 @@ def multi_picture_export(pic_list, subfolder=None, prefix=None, postfix=None,
                 function, clip_final_pic, matplot_f
         )
 
+        if loop_start and i < loop_start:
+            continue
+        if loop_lim and i >= loop_lim:
+            break
         if pool is None:
             # print("Pol is none")
             _multi_picture_thread_executor(*single_args, **kw)
@@ -124,6 +130,7 @@ def _multi_picture_thread_executor(
         function=None,
         clip_out_pic=None,
         matplot_f=None,
+        function_im_add_axes=False,
         **kw,
 ):
     MAX_ORIG_SIZE = 1000
@@ -131,11 +138,20 @@ def _multi_picture_thread_executor(
 
     dst = f"{PIC_OUTPUT_FOLDER}{subfolder}{prefix}{name}{postfix}.{ext}"
     img_input_bgr = cv2.imread(ph, cv2.IMREAD_COLOR)
-    print(name)
+    # print(name)
 
     if function:
         "Change image array"
-        function_im = function(img_input_bgr.copy(), **kw)
+        function_im = function(img_input_bgr.copy(), name=name, **kw)
+        if function_im_add_axes:
+            fig = plt.figure()
+            plt.imshow(function_im)
+            plt.tight_layout()
+            plt.subplots_adjust(top=0.95,bottom=0.05)
+            fig.canvas.draw()
+            function_im = np.asarray(fig.canvas.buffer_rgba(), dtype=np.uint8)
+            function_im = cv2.cvtColor(function_im, cv2.COLOR_RGBA2RGB)
+            plt.close()
     else:
         function_im = None
 
@@ -144,6 +160,7 @@ def _multi_picture_thread_executor(
         fig = plt.figure(figsize=(10, 7))
         matplot_f(img_input_bgr.copy(), **kw)
         plt.tight_layout()
+        plt.legend(loc='best')
         fig.canvas.draw()
         matplot_im = np.asarray(fig.canvas.buffer_rgba(), dtype=np.uint8)
         matplot_im = cv2.cvtColor(matplot_im, cv2.COLOR_RGBA2BGR)

@@ -43,9 +43,22 @@ class FrameFoi:
         self.ysl = ysl
         return ysl, xsl
 
-    def get_foi(self, frame):
+    def get_mask(self, frame):
+        mask = np.zeros_like(frame, dtype=bool)
+
+        h, w, *c = frame.shape
+        x = (np.array([self.x1, self.x2]) * w).round().astype(int)
+        y = (np.array([self.y1, self.y2]) * h).round().astype(int)
+        xsl = slice(*x)
+        ysl = slice(*y)
+        # self.xsl = xsl
+        # self.ysl = ysl
+        mask[ysl, xsl] = True
+        return mask
+
+    def get_foi(self, frame, **kw):
         ysl, xsl = self.get_slices(frame)
-        roi = frame[ysl, xsl]
+        roi = frame[ysl, xsl].copy()
         return roi
 
 
@@ -54,9 +67,20 @@ foi_roadsample = FrameFoi(400 / 720, 445 / 720, 468 / 1280, 1000 / 1280)  # Orig
 # foi_roadsample = FrameFoi(200 / 720, 445 / 720, 200 / 1280, 1100 / 1280)  # Wide Thin
 # foi_roadsample = FrameFoi(350 / 720, 445 / 720, 468 / 1280, 1000 / 1280)  # Original road
 foi_roadsample_low = FrameFoi(400 / 720, 445 / 720, 460 / 1280, 800 / 1280)  # Late Edit to get left side
-foi_roadsample_high = FrameFoi(300 / 720, 445 / 720, 460 / 1280, 800 / 1280)  # Late Edit to get left side
+foi_roadsample_high = FrameFoi(300 / 720, 445 / 720, 460 / 1280,
+                               800 / 1280)  # Late Edit to get left side
 
 foi_window_view = FrameFoi(100 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # viewport
 foi_window_view = FrameFoi(250 / 720, 445 / 720, 468 / 1280, 900 / 1280)  # viewport
 
-__all__ = ['foi_roadsample', 'foi_window_view']
+foi_frontvision = FrameFoi(150 / 720, 700 / 720, 0 / 1280, 950 / 1280)
+foi_frontsample = FrameFoi(400 / 720, 1, 0 / 1280, 1000 / 1280)
+foi_frontsample = FrameFoi(450 / 730, 1, 0 / 1280, 1)  # full sides
+
+foi_map = FrameFoi(473 / 731, 672 / 731, 993 / 1300, 1292 / 1300)
+foi_mirror_right = FrameFoi(60 / 731, 310 / 731, 1095 / 1300, 1285 / 1300)
+foi_mirror_left = FrameFoi(60 / 731, 310 / 731, 12 / 1300, 203 / 1300)
+
+foi_road_model = FrameFoi(400 / 720, 1, 0 / 1280, 950 / 1280)
+
+__all__ = ['foi_roadsample', 'foi_window_view', 'foi_frontvision']

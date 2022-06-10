@@ -93,7 +93,7 @@ def save_frames(src_path, interval=1, max_size=1024, prefix=None, max_frames=Non
     for i, (p, pic) in enumerate(cap.iter(interval)):
         print(i, p)
 
-        out_path = dest + f"frame-{p:>05}.png"
+        out_path = dest + f"frame-{p:>07}.png"
         pic = dwn_f(pic)
         cv2.imwrite(out_path, pic)
         if max_frames and i > max_frames:
@@ -103,5 +103,12 @@ def save_frames(src_path, interval=1, max_size=1024, prefix=None, max_frames=Non
 if __name__ == "__main__":
     # save_frames(os.path.join("vision_source", "src_movies", "autostrada-notsmooth.mp4"), interval=40)
     save_frames(
-            os.path.join("vision_source", "src_movies", "autostrada-notsmooth.mp4"),
-            interval=1, prefix="numbers", max_size=2000, max_frames=850)
+            os.path.join("vision_source", "src_movies", "frankfurt-munch.mp4"),
+            interval=60, max_size=1300
+    )
+    save_frames(
+            os.path.join("vision_source", "src_movies", "frankfurt-munch-traffic.mp4"),
+            interval=60, max_size=1300
+    )
+
+    print("FINISH...")

@@ -260,7 +260,7 @@ class UI:
 
         fig = plt.figure(figsize=(12, 8))
         zoom = self.refs['histzoom'].get()
-        plot_smooth_histogram(roi, smooth=3, zoom=zoom / 100)
+        plot_smooth_histogram(roi, smooth=0, zoom=zoom / 100)
 
         plt.tight_layout()
         fig.canvas.draw()

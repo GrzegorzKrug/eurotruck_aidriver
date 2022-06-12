@@ -11,6 +11,7 @@ from itertools import product, combinations
 
 
 from sklearn.cluster import MeanShift, KMeans
+from utility import rolling_smooth, pic_gray_to3d, mask_hud, image_to_features
 
 
 def detector(frame):
@@ -18,23 +19,7 @@ def detector(frame):
     return marked
 
 
-def image_to_features(arr, include_pos=False, pos_weight=0.5):
-    """Convert image to position and value"""
-    h, w, *_ = arr.shape
 
-    y, x = np.ogrid[:h, :w]
-    xx, yy = np.meshgrid(x, y)
-    keys = np.stack([yy, xx], axis=-1).reshape(-1, 2).T
-    translation_key = tuple(map(tuple, keys))
-
-    out = arr[translation_key]
-
-    if include_pos:
-        mx = np.max(keys, axis=1).reshape(2, -1)
-        keys = keys / mx
-        out = np.concatenate([keys.T * pos_weight, out], axis=1)
-
-    return out
 
 
 def image_revert_from_features(arr, keys):

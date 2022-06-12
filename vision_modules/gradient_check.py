@@ -23,13 +23,14 @@ from multiprocoess_functions import *
 from frame_foi import (
     foi_roadsample, foi_window_view, foi_roadsample_low,
     foi_frontvision, foi_frontsample, foi_map, foi_road_model,
-    foi_mirror_left, foi_mirror_right,
+    foi_mirror_left, foi_mirror_right, foi_no_hud,
 )
 
 from hough_module import draw_hough_lines
 from utility import (
     rolling_smooth, pic_gray_to3d, mask_hud, image_to_features, image_from_features,
     DEFINED_COLORS,
+    timedecorator, time_formatter,
 )
 
 
@@ -52,68 +53,169 @@ def calc_road_gradient(pic, name=None, **kw):
     return pic
 
 
-def road_segmentize(orig_pic, name=None, **kw):
+def get_segment_color(center):
+    pass
+
+
+def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
+        use_hsv=True,
+        **kw):
     """"""
-    print(name)
-    orig_pic = mask_hud(orig_pic)
+    include_pos = True
 
-    h, w, _ = orig_pic.shape
-    ftrs = image_to_features(orig_pic, include_pos=False, pos_weight=155)
-    # diff = orig_pic - img
+    if use_hsv:
+        orig_pic = cv2.cvtColor(orig_pic, cv2.COLOR_BGR2HSV)
+    H, W, _ = orig_pic.shape
 
-    # ms = MeanShift(bandwidth=5)
-    ms = KMeans(3)
+    # if speed_up <= 1:
+    #     orig_pic = cv2.medianBlur(orig_pic, 7)
+    # ftrs = image_to_features(orig_pic, include_pos=True, pos_weight=50)
+    posx_w = 15  # 10-15
+    posy_w = 55  # 70-55
+    KN = 4  # 4-5-6
+    ft_weights = [0.2, 1, 0.4, posy_w, posx_w]
+
+    "DOWNSCALE PICTURE"
+    if speed_up > 1:
+        h, w = np.round([H / speed_up, W / speed_up]).astype(int)
+        train_pic = cv2.resize(orig_pic, (w, h))
+        ksize = 5
+        train_pic = cv2.medianBlur(train_pic, ksize)
+    else:
+        speed_up = 1
+        train_pic = orig_pic
+
+    # return train_pic
+
+    "GET PICTURE FEATURES"
+    if clip_hud:
+        sly, slx = foi_no_hud.get_slices(train_pic)
+        ftrs, clip = image_to_features(train_pic, include_pos=include_pos,
+                                       # posx_weight=posx_w, posy_weight=posy_w,
+                                       clip_y=sly, clip_x=slx,
+                                       )
+        train_pic = clip
+    else:
+        train_pic = mask_hud(train_pic)
+        ftrs, _ = image_to_features(train_pic, include_pos=include_pos,
+                                    # posx_weight=posx_w, posy_weight=posy_w
+                                    )
+
+    if ft_weights:
+        ftrs *= ft_weights
+    # if speed_up > 1:
+    #     ftrs *= np.array([1, 1, 1, speed_up, speed_up])
+    # if clip_hud:
+    #     ftrs *= np.array([1, 1, 1, H / sly.stop, W / slx.stop])
+    #     ftrs += np.array([0, 0, 0, (sly.stop - sly.start) / H, (slx.stop - slx.start) / W])
+
+    t0 = time.time()
+    ms = KMeans(KN)
     ret = ms.fit(ftrs)
+    tfit = time.time() - t0
+
+    cluster_colors = ret.cluster_centers_[:, :3]
+
+    if clip_hud or speed_up > 1:
+        # if clip_hud:
+        #     pred_pic = foi_no_hud.get_foi(orig_pic)
+        # else:
+        #     pred_pic = mask_hud(orig_pic)
+        pred_pic = mask_hud(orig_pic)
+        ftrs, _ = image_to_features(pred_pic, include_pos=include_pos,
+                                    # posx_weight=posx_w, posy_weight=posy_w
+                                    )
+        if ft_weights:
+            ftrs *= ft_weights
+        t0 = time.time()
+        labs = ms.predict(ftrs)
+        tpredict = time.time() - t0
+        hout, wout = pred_pic.shape[:2]
+    else:
+        labs = ret.labels_
+        tpredict = None
+        hout, wout = H, W
+
+    print(f"Kmeans fit time: {time_formatter(tfit)}, pred time: {time_formatter(tpredict)}")
+
     color_ftrs = ftrs[:, :3]
 
-    labs = ret.labels_
     unq_lb = np.unique(labs)
+    cluster_colors = cluster_colors[:len(unq_lb)]
+    if ft_weights:
+        cluster_colors = cluster_colors / ft_weights[:3]
+
     for lb in unq_lb:
         mask = labs == lb
-        color = DEFINED_COLORS[lb]
-        # print(color)
+        color = cluster_colors[lb]
         color_ftrs[mask] = color
 
-        # mask = mask.reshape(h, w)
-        # plt.imshow(mask)
-        # plt.colorbar()
-        # plt.show()
-        # mask = np.array(mask*255, dtype=np.uint8)
-        # mask = pic_gray_to3d(mask)
-        # print(mask.shape)
-        # return mask
-        # ftrs[mask] = color
-    # for lb in labs:
-    # centroids = ret.cluster_centers_
-    # print(ftrs.shape)
-    img = image_from_features(color_ftrs, h, w)
-    return img
+    img = image_from_features(color_ftrs, hout, wout)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    # img = np.tile(img[:, :, 1].reshape(h, w, 1), [1, 1, 3])
 
-    # act1.set_array(fr[:, :, [2, 1, 0]])
-    # act1.set_array(frame_gray)
-    # cv2.imshow('road', road_gray)
-    # cv2.imshow('road', frame_road)
-    # ax2.clear()
-    # ax2.plot(hist_gray)
-    # ax2.set_ylim([0, 20000])
-    # ax2.set_ylim([0, 200])
-    # return orig_pic
+    # if clip_hud:
+    #     img = foi_no_hud.get_foi(img)
+
+    hout = img.shape[0]
+
+    cluster_bar = np.zeros((hout, 20, 3), dtype=np.uint8)
+    step = hout / len(cluster_colors)
+    for i, cl in enumerate(cluster_colors):
+        ind1 = int(i * step)
+        ind2 = int(i * step + step)
+        cluster_bar[ind1:ind2, :] = cl
+    cluster_bar[:, 0] = [0, 0, 0]
+    cluster_bar[:, 1] = [255, 255, 255]
+
+    img = np.hstack([img, cluster_bar])
+
+    if use_hsv:
+        img = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
+
+    # plt.imshow(img)
+    # plt.show()
+    return img
 
 
 if __name__ == "__main__":
     t0 = time.time()
-    pool = mpc.Pool(8)
+    pool = mpc.Pool(4)
     # pool = None
 
     multi_picture_export(
             PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
             function=road_segmentize,
-            # funal_pic=foi_frontsample.get_foi,
             pool=pool,
-            loop_start=100,
-            loop_lim=120,
+            # clip_final_pic=foi_no_hud.get_foi,
+            loop_start=35,
+            # loop_lim=36,
+            # loop_lim=40,
+            # loop_lim=50,
+            loop_lim=100,
+            # loop_lim=300,
+            # clip_hud=False,
+            clip_hud=True,
     )
-    #
+    # multi_picture_export(
+    #         PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
+    #         function=road_segmentize,
+    #         pool=pool,
+    #         # clip_final_pic=foi_no_hud.get_foi,
+    #         loop_start=55,
+    #         loop_lim=60,
+    #         # clip_hud=False,
+    #         # clip_hud=True,
+    # )
+    # multi_picture_export(
+    #         PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
+    #         function=road_segmentize,
+    #         pool=pool,
+    #         clip_final_pic=foi_no_hud.get_foi,
+    #         loop_start=110,
+    #         loop_lim=120,
+    # )
+
     # plot_histogram()
     # check_mean_shift_of_hisogram()
     tend = time.time()

@@ -82,5 +82,7 @@ foi_mirror_right = FrameFoi(60 / 731, 310 / 731, 1095 / 1300, 1285 / 1300)
 foi_mirror_left = FrameFoi(60 / 731, 310 / 731, 12 / 1300, 203 / 1300)
 
 foi_road_model = FrameFoi(400 / 720, 1, 0 / 1280, 950 / 1280)
+foi_no_hud = FrameFoi(0, 1, 203 / 1300, 993 / 1300)
+foi_no_hud = FrameFoi(0.35, 1, 203 / 1300, 993 / 1300)
 
 __all__ = ['foi_roadsample', 'foi_window_view', 'foi_frontvision']

@@ -7,35 +7,12 @@ from picture_paths import CABIN_PICS_1, CABIN_PICS_2, PIC_OUTPUT_FOLDER
 import numpy as np
 import imutils
 
+from utility import timedecorator
+
 
 # import multiprocessing as mpc
 
 # POOL = mpc.Pool(10)
-
-
-def time_formatter(val, prec=2):
-    if val < 0.001:
-        return f"{val * 1_000_000:>6.{prec}f} us"
-    elif val < 1:
-        return f"{val * 1_000:>6.{prec}f} ms"
-    elif val < 60:
-        return f"{val:>6.{prec}f} s"
-    elif val < 3600:
-        return f"{val / 60:>6.{prec}f} m"
-    else:
-        return f"{val / 60 / 60:>6.{prec}f} h"
-
-
-def timedecorator(f):
-    def wrapper(*a, **kw):
-        t0 = time.time()
-        res = f(*a, **kw)
-        tend = time.time()
-        dur = tend - t0
-        print(f"{f.__name__:<25} was executed in {time_formatter(dur)}")
-        return res
-
-    return wrapper
 
 
 @timedecorator
@@ -147,7 +124,7 @@ def _multi_picture_thread_executor(
             fig = plt.figure()
             plt.imshow(function_im)
             plt.tight_layout()
-            plt.subplots_adjust(top=0.95,bottom=0.05)
+            plt.subplots_adjust(top=0.95, bottom=0.05)
             fig.canvas.draw()
             function_im = np.asarray(fig.canvas.buffer_rgba(), dtype=np.uint8)
             function_im = cv2.cvtColor(function_im, cv2.COLOR_RGBA2RGB)
@@ -248,7 +225,7 @@ def _multi_picture_thread_executor(
     cv2.imwrite(dst, stacked_image)
 
 
-__all__ = ['multi_picture_export', 'time_formatter', 'timedecorator']
+__all__ = ['multi_picture_export', ]
 
 if __name__ == "__main__":
     print("Main")

@@ -17,7 +17,7 @@ import os
 
 from picture_paths import (
     CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS, PICS_AUTOSTRADA,
-    PICS_FRANKFURT, PICS_FRANKFURT_TRAFFIC,
+    PICS_FRANKFURT, PICS_FRANKFURT_TRAFFIC, SOURCE_FOLDER,
 )
 from multiprocoess_functions import *
 from frame_foi import (
@@ -111,6 +111,24 @@ def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
 
     t0 = time.time()
     ms = KMeans(KN)
+    pts = np.array([
+            [0.1, 0.5],
+            [0.5, 0.1],
+            [0.9, 0.5],
+            [0.5, 0.9]
+    ])
+    h, w = train_pic.shape[:2]
+    pts = (pts * [h, w]).round().astype(int)
+    indy, indx = pts.T
+    first_centrs = train_pic[indy, indx].reshape(4, -1)
+    print(pts)
+    print("Centers:")
+    print(first_centrs)
+    first_centrs = np.hstack([first_centrs, indy.T / h, indx.T / w])
+    print("Shape")
+    print(first_centrs.shape)
+    # ms.cluster_centers_ = first_centrs
+
     ret = ms.fit(ftrs)
     tfit = time.time() - t0
 
@@ -183,20 +201,22 @@ if __name__ == "__main__":
     pool = mpc.Pool(4)
     # pool = None
 
-    multi_picture_export(
-            PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
-            function=road_segmentize,
-            pool=pool,
-            # clip_final_pic=foi_no_hud.get_foi,
-            loop_start=35,
-            # loop_lim=36,
-            # loop_lim=40,
-            # loop_lim=50,
-            loop_lim=100,
-            # loop_lim=300,
-            # clip_hud=False,
-            clip_hud=True,
-    )
+    # multi_picture_export(
+    #         PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
+    #         function=road_segmentize,
+    #         pool=pool,
+    #         # clip_final_pic=foi_no_hud.get_foi,
+    #         loop_start=35,
+    #         # loop_lim=36,
+    #         loop_lim=40,
+    #         # loop_lim=50,
+    #         # loop_lim=100,
+    #         # loop_lim=300,
+    #         # clip_hud=False,
+    #         clip_hud=True,
+    # )
+    pic = cv2.imread(SOURCE_FOLDER + os.path.join(["src_images", "zima.jpg"]))
+    img = road_segmentize(pic)
     # multi_picture_export(
     #         PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
     #         function=road_segmentize,

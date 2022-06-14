@@ -16,8 +16,8 @@ import cv2
 import os
 
 from picture_paths import (
-    CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS, PICS_AUTOSTRADA,
-    PICS_FRANKFURT, PICS_FRANKFURT_TRAFFIC, SOURCE_FOLDER,
+    COLORS_PATHS, PICS_AUTOSTRADA,
+    PICS_FRANKFURT, PICS_FRANKFURT_TRAFFIC, PIC_SOURCE_FOLDER,
 )
 from multiprocoess_functions import *
 from frame_foi import (
@@ -57,8 +57,10 @@ def get_segment_color(center):
     pass
 
 
-def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
+def road_segmentize(orig_pic, name=None, clip_hud=False, speed_up=6,
         use_hsv=True,
+        KN=4,
+        ft_weights=None,
         **kw):
     """"""
     include_pos = True
@@ -72,8 +74,8 @@ def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
     # ftrs = image_to_features(orig_pic, include_pos=True, pos_weight=50)
     posx_w = 15  # 10-15
     posy_w = 55  # 70-55
-    KN = 4  # 4-5-6
-    ft_weights = [0.2, 1, 0.4, posy_w, posx_w]
+    if ft_weights is None:
+        ft_weights = [0.2, 1, 0.4, 55, 15]
 
     "DOWNSCALE PICTURE"
     if speed_up > 1:
@@ -96,7 +98,7 @@ def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
                                        )
         train_pic = clip
     else:
-        train_pic = mask_hud(train_pic)
+        # train_pic = mask_hud(train_pic)
         ftrs, _ = image_to_features(train_pic, include_pos=include_pos,
                                     # posx_weight=posx_w, posy_weight=posy_w
                                     )
@@ -108,26 +110,29 @@ def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
     # if clip_hud:
     #     ftrs *= np.array([1, 1, 1, H / sly.stop, W / slx.stop])
     #     ftrs += np.array([0, 0, 0, (sly.stop - sly.start) / H, (slx.stop - slx.start) / W])
+    # return train_pic
 
     t0 = time.time()
     ms = KMeans(KN)
-    pts = np.array([
-            [0.1, 0.5],
-            [0.5, 0.1],
-            [0.9, 0.5],
-            [0.5, 0.9]
-    ])
-    h, w = train_pic.shape[:2]
-    pts = (pts * [h, w]).round().astype(int)
-    indy, indx = pts.T
-    first_centrs = train_pic[indy, indx].reshape(4, -1)
-    print(pts)
-    print("Centers:")
-    print(first_centrs)
-    first_centrs = np.hstack([first_centrs, indy.T / h, indx.T / w])
-    print("Shape")
-    print(first_centrs.shape)
-    # ms.cluster_centers_ = first_centrs
+
+    if False:
+        pts = np.array([
+                [0.1, 0.5],
+                [0.5, 0.1],
+                [0.9, 0.5],
+                [0.5, 0.9]
+        ])
+        h, w = train_pic.shape[:2]
+        pts = (pts * [h, w]).round().astype(int)
+        indy, indx = pts.T
+        first_centrs = train_pic[indy, indx].reshape(4, -1)
+        print(pts)
+        print("Centers:")
+        print(first_centrs)
+        first_centrs = np.hstack([first_centrs, indy.T / h, indx.T / w])
+        print("Shape")
+        print(first_centrs.shape)
+        # ms.cluster_centers_ = first_centrs
 
     ret = ms.fit(ftrs)
     tfit = time.time() - t0
@@ -139,7 +144,10 @@ def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
         #     pred_pic = foi_no_hud.get_foi(orig_pic)
         # else:
         #     pred_pic = mask_hud(orig_pic)
-        pred_pic = mask_hud(orig_pic)
+        if clip_hud:
+            pred_pic = mask_hud(orig_pic)
+        else:
+            pred_pic = orig_pic
         ftrs, _ = image_to_features(pred_pic, include_pos=include_pos,
                                     # posx_weight=posx_w, posy_weight=posy_w
                                     )
@@ -177,7 +185,9 @@ def road_segmentize(orig_pic, name=None, clip_hud=True, speed_up=6,
 
     hout = img.shape[0]
 
-    cluster_bar = np.zeros((hout, 20, 3), dtype=np.uint8)
+    bar_width = int(W * 0.04)
+    bar_width = bar_width if bar_width > 5 else 5
+    cluster_bar = np.zeros((hout, bar_width, 3), dtype=np.uint8)
     step = hout / len(cluster_colors)
     for i, cl in enumerate(cluster_colors):
         ind1 = int(i * step)
@@ -213,10 +223,30 @@ if __name__ == "__main__":
     #         # loop_lim=100,
     #         # loop_lim=300,
     #         # clip_hud=False,
+    #         ft_weights=[0.2, 1, 0.4, 55, 15],
     #         clip_hud=True,
     # )
-    pic = cv2.imread(SOURCE_FOLDER + os.path.join(["src_images", "zima.jpg"]))
-    img = road_segmentize(pic)
+
+    path = PIC_SOURCE_FOLDER + os.path.join("src_images", "zima.jpg")
+    print(path)
+    pic = cv2.imread(path, cv2.IMREAD_COLOR)
+    pic = pic[:2200, :, :]
+    # plt.imshow(pic)
+    # plt.show()
+
+    img = road_segmentize(
+            pic,
+            KN=4, ft_weights=[0.3, 1.1, 1, 80, 50]
+
+    )
+
+    img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
+    plt.figure(figsize=(12, 7))
+    plt.imshow(img)
+    plt.tight_layout()
+    plt.show()
+    # print(pic)
+    # img = road_segmentize(pic)
     # multi_picture_export(
     #         PICS_FRANKFURT_TRAFFIC, subfolder="traffic-gradient",
     #         function=road_segmentize,

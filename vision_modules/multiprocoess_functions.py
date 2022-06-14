@@ -3,7 +3,7 @@ import time
 import cv2
 import os
 
-from picture_paths import CABIN_PICS_1, CABIN_PICS_2, PIC_OUTPUT_FOLDER
+from picture_paths import PIC_OUTPUT_FOLDER
 import numpy as np
 import imutils
 
@@ -232,5 +232,5 @@ if __name__ == "__main__":
     # print(PICS_FOLDER)
     # print(ALL_HD)
     # print(CABIN_PICS_1)
-    multi_picture_export(CABIN_PICS_1, subfolder="filter_1")
-    multi_picture_export(CABIN_PICS_2, subfolder="filter_2", postfix="plot")
+    # multi_picture_export(CABIN_PICS_1, subfolder="filter_1")
+    # multi_picture_export(CABIN_PICS_2, subfolder="filter_2", postfix="plot")

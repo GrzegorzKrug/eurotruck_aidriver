@@ -16,7 +16,7 @@ import cv2
 import os
 
 from picture_paths import (
-    CABIN_PICS_1, CABIN_PICS_2, COLORS_PATHS, PICS_AUTOSTRADA,
+     COLORS_PATHS, PICS_AUTOSTRADA,
     PICS_FRANKFURT, PICS_FRANKFURT_TRAFFIC,
 )
 from multiprocoess_functions import *

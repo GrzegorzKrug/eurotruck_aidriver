@@ -6,8 +6,8 @@ MAIN_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(f"{__file__})"))) 
 PIC_SOURCE_FOLDER = MAIN_FOLDER + "vision_source" + os.path.sep
 PIC_OUTPUT_FOLDER = MAIN_FOLDER + "vision_output" + os.path.sep
 
-ALL_HD = glob.glob(f"{PIC_SOURCE_FOLDER}{os.path.sep}**{os.path.sep}*.jpg", recursive=True)
-ALL_HD.sort()
+# ALL_HD = glob.glob(f"{PIC_SOURCE_FOLDER}{os.path.sep}**{os.path.sep}*.jpg", recursive=True)
+# ALL_HD.sort()
 
 PICS_AUTOSTRADA = glob.glob(f"{PIC_SOURCE_FOLDER}autostrada-notsmooth**{os.path.sep}*.png",
                             recursive=True)
@@ -54,11 +54,11 @@ def filter_paths(pic_list_paths, filters):
     return new_list
 
 
-CABIN_PICS_1 = filter_paths(ALL_HD, [(0, 20220307164615)])
-CABIN_PICS_2 = filter_paths(ALL_HD, [(0, 20220307164615),
-                                     (20220307170754, 20220307171023),
-                                     (20220307171044, 20220307171352)]
-                            )
+# CABIN_PICS_1 = filter_paths(ALL_HD, [(0, 20220307164615)])
+# CABIN_PICS_2 = filter_paths(ALL_HD, [(0, 20220307164615),
+#                                      (20220307170754, 20220307171023),
+#                                      (20220307171044, 20220307171352)]
+#                             )
 
 # print(CABIN_PICS_1)
 # print(CABIN_PICS_2)
